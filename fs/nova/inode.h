@@ -16,7 +16,7 @@ enum nova_new_inode_type {
 
 
 /*
- * Structure of an inode in PMEM
+ * Structure of an inode in PMEM by HYH
  * Keep the inode size to within 120 bytes: We use the last eight bytes
  * as inode table tail pointer.
  */
