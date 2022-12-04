@@ -201,6 +201,7 @@ static int nova_gc_assign_dentry(struct super_block *sb,
 	if (found == 1 && hash == ret_node->hash) {
 		if (ret_node->direntry == old_dentry)
 			ret_node->direntry = new_dentry;
+			nova_update_range_node_checksum(ret_node);    /* update checksum */
 	}
 
 	return ret;
@@ -399,7 +400,6 @@ static unsigned long nova_inode_log_thorough_gc(struct super_block *sb,
 		memcpy_to_pmem_nocache(alter_pi, pi, sizeof(struct nova_inode));
 	}
 	nova_memlock_inode(sb, pi, &irq_flags);
-	nova_flush_buffer(pi, sizeof(struct nova_inode), 1);
 	sih->log_head = new_head;
 
 	/* Step 3: Unlink the old log */
@@ -530,7 +530,6 @@ static unsigned long nova_inode_alter_log_thorough_gc(struct super_block *sb,
 		memcpy_to_pmem_nocache(alter_pi, pi, sizeof(struct nova_inode));
 	}
 	nova_memlock_inode(sb, pi, &irq_flags);
-	nova_flush_buffer(pi, sizeof(struct nova_inode), 1);
 	sih->alter_log_head = new_head;
 
 	/* Step 4: Unlink the old log */

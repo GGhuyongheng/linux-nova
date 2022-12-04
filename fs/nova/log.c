@@ -707,6 +707,14 @@ int nova_invalidate_link_change_entry(struct super_block *sb,
 static int nova_can_inplace_update_lcentry(struct super_block *sb,
 	struct nova_inode_info_header *sih, u64 epoch_id)
 {
+	/* FIXME: There is a crash consistency issue with link after rename.
+	 * rename will create a link change entry to the log. nova_link() after
+	 * that will inplace update the link change entry. A crash after
+	 * nova_append_link_change_entry() in nova_link() will leave the inode
+	 * in inconsistent state (number of links) in this case.
+	 * Currently, disable inplace update link change entry.
+	 */
+# if 0
 	u64 last_log = 0;
 	struct nova_link_change_entry *entry = NULL;
 
@@ -717,7 +725,7 @@ static int nova_can_inplace_update_lcentry(struct super_block *sb,
 		if (entry->epoch_id == epoch_id)
 			return 1;
 	}
-
+#endif
 	return 0;
 }
 
@@ -1184,7 +1192,6 @@ static int nova_initialize_inode_log(struct super_block *sb,
 		sih->log_pages++;
 		nova_flush_buffer(&pi->alter_log_head, CACHELINE_SIZE, 1);
 	}
-	nova_update_inode_checksum(pi);
 	nova_memlock_inode(sb, pi, &irq_flags);
 
 	return 0;
@@ -1220,6 +1227,10 @@ static u64 nova_extend_inode_log(struct super_block *sb, struct nova_inode *pi,
 							sih->alter_log_head);
 			nova_memlock_inode(sb, pi, &irq_flags);
 		}
+
+		nova_memunlock_inode(sb, pi, &irq_flags);
+		nova_update_inode_checksum(pi);
+		nova_memlock_inode(sb, pi, &irq_flags);
 
 		return sih->log_head;
 	}
